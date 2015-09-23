@@ -37,6 +37,7 @@ class MenuItem implements ArrayableContract
         'attributes',
         'active',
         'order',
+        'visible',
     );
 
     /**
@@ -154,11 +155,11 @@ class MenuItem implements ArrayableContract
      *
      * @return array
      */
-    public function route($route, $title, $parameters = array(), $order = 0, $attributes = array())
+    public function route($route, $title, $parameters = array(), $order = 0, $attributes = array(), $visible = true)
     {
         $route = array($route, $parameters);
 
-        return $this->add(compact('route', 'title', 'order', 'attributes'));
+        return $this->add(compact('route', 'title', 'order', 'attributes', 'visible'));
     }
 
     /**
@@ -170,9 +171,9 @@ class MenuItem implements ArrayableContract
      *
      * @return array
      */
-    public function url($url, $title, $order = 0, $attributes = array())
+    public function url($url, $title, $order = 0, $attributes = array(), $visible = true)
     {
-        return $this->add(compact('url', 'title', 'order', 'attributes'));
+        return $this->add(compact('url', 'title', 'order', 'attributes', 'visible'));
     }
 
     /**
@@ -196,9 +197,9 @@ class MenuItem implements ArrayableContract
      * 
      * @return self
      */
-    public function addDivider($order = null)
+    public function addDivider($order = null, $visible = true)
     {
-        $this->childs[] = static::make(array('name' => 'divider', 'order' => $order));
+        $this->childs[] = static::make(array('name' => 'divider', 'order' => $order, 'visible' => $visible));
 
         return $this;
     }
@@ -220,11 +221,12 @@ class MenuItem implements ArrayableContract
      *
      * @return $this
      */
-    public function addHeader($title)
+    public function addHeader($title, $visible = true)
     {
         $this->childs[] = static::make(array(
             'name' => 'header',
             'title' => $title,
+            'visible' => true,
         ));
 
         return $this;
@@ -237,9 +239,9 @@ class MenuItem implements ArrayableContract
      *
      * @return $this
      */
-    public function header($title)
+    public function header($title, $visible = true)
     {
-        return $this->addHeader($title);
+        return $this->addHeader($title, $visible);
     }
 
     /**

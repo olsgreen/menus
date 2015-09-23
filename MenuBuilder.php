@@ -278,18 +278,26 @@ class MenuBuilder implements Countable
     public function resolve($key)
     {
         if (is_array($key)) {
+
             foreach ($key as $k => $v) {
                 $key[$k] = $this->resolve($v);
             }
+
         } elseif (is_string($key)) {
+
             $matches = array();
             preg_match_all('/{[\s]*?([^\s]+)[\s]*?}/i', $key, $matches, PREG_SET_ORDER);
+
             foreach ($matches as $match) {
+
                 if (array_key_exists($match[1], $this->bindings)) {
                     $key = preg_replace('/' . $match[0] . '/', $this->bindings[$match[1]], $key, 1);
                 }
+
             }
+
         }
+
         return $key;
     }
 
@@ -299,7 +307,7 @@ class MenuBuilder implements Countable
      * @param  array  &$items
      * @return void
      */
-    protected function resolveItems(array &$items)
+    protected function resolveItems(array $items)
     {
         $resolver = function ($property) {
             return $this->resolve($property) ?: $property;
@@ -308,6 +316,31 @@ class MenuBuilder implements Countable
         for ($i = 0; $i < count($items); $i++) {
             $items[$i]->fill(array_map($resolver, $items[$i]->getProperties()));
         }
+
+        return $items;
+    }
+
+
+    /**
+     * Gets the current item array filtered by 'visible' parameter value.
+     * 
+     * @param  array  $items 
+     * @return array
+     */
+    protected function getVisibleItems(array $items)
+    {
+        foreach ($items as $key => $item) {
+
+            if (!$item->visible || is_callable($item->visible) 
+                && !call_user_func_array($item->visible, [$item, $this->bindings])) {
+
+                unset($items[$key]);
+
+            }
+
+        }
+
+        return $items;
     }
 
     /**
@@ -335,9 +368,9 @@ class MenuBuilder implements Countable
      *
      * @return $this
      */
-    public function dropdown($title, \Closure $callback, $order = 0, array $attributes = array())
+    public function dropdown($title, \Closure $callback, $order = 0, array $attributes = array(), $visible = true)
     {
-        $item = MenuItem::make(compact('title', 'order') + $attributes);
+        $item = MenuItem::make(compact('title', 'order', 'visible') + $attributes);
 
         call_user_func($callback, $item);
 
@@ -356,12 +389,12 @@ class MenuBuilder implements Countable
      *
      * @return static
      */
-    public function route($route, $title, $parameters = array(), $order = null, $attributes = array())
+    public function route($route, $title, $parameters = array(), $order = null, $attributes = array(), $visible = true)
     {
         $route = array($route, $parameters);
 
         $item = MenuItem::make(
-            compact('route', 'title', 'parameters', 'attributes', 'order')
+            compact('route', 'title', 'parameters', 'attributes', 'order', 'visible')
         );
 
         $this->items[] = $item;
@@ -392,11 +425,11 @@ class MenuBuilder implements Countable
      *
      * @return static
      */
-    public function url($url, $title, $order = 0, $attributes = array())
+    public function url($url, $title, $order = 0, $attributes = array(), $visible = true)
     {
         $url = $this->formatUrl($url);
 
-        $item = MenuItem::make(compact('url', 'title', 'order', 'attributes'));
+        $item = MenuItem::make(compact('url', 'title', 'order', 'attributes', 'visible'));
 
         $this->items[] = $item;
 
@@ -409,9 +442,9 @@ class MenuBuilder implements Countable
      * @param int $order
      * @return \Pingpong\Menus\MenuItem
      */
-    public function addDivider($order = null)
+    public function addDivider($order = null, $visible = true)
     {
-        $this->items[] = new MenuItem(array('name' => 'divider', 'order' => $order));
+        $this->items[] = new MenuItem(array('name' => 'divider', 'order' => $order, 'visible' => $visible));
 
         return $this;
     }
@@ -421,12 +454,13 @@ class MenuBuilder implements Countable
      *
      * @return \Pingpong\Menus\MenuItem
      */
-    public function addHeader($title, $order = null)
+    public function addHeader($title, $order = null, $visible = true)
     {
         $this->items[] = new MenuItem(array(
             'name' => 'header',
             'title' => $title,
-            'order' => $order
+            'order' => $order,
+            'visible' => $visible,
         ));
 
         return $this;
@@ -439,9 +473,9 @@ class MenuBuilder implements Countable
      *
      * @return $this
      */
-    public function header($title)
+    public function header($title, $visible = true)
     {
-        return $this->addHeader($title);
+        return $this->addHeader($title, $visible);
     }
 
     /**
@@ -449,9 +483,9 @@ class MenuBuilder implements Countable
      *
      * @return $this
      */
-    public function divider()
+    public function divider($visible = true)
     {
-        return $this->addDivider();
+        return $this->addDivider(null, $visible);
     }
 
     /**
@@ -483,8 +517,6 @@ class MenuBuilder implements Countable
      */
     public function render($presenter = null)
     {
-        $this->resolveItems($this->items);
-
         if (!is_null($this->view)) {
             return $this->renderView($presenter);
         }
@@ -508,7 +540,7 @@ class MenuBuilder implements Countable
     public function renderView($presenter = null)
     {
         return $this->views->make($presenter ?: $this->view, [
-            'items' => $this->getOrderedItems(),
+            'items' => $this->getFilteredItems(),
         ]);
     }
 
@@ -520,6 +552,22 @@ class MenuBuilder implements Countable
     public function getItems()
     {
         return $this->items;
+    }
+
+    /**
+     * Gets the current item list with filters applied.
+     * 
+     * @return array
+     */
+    public function getFilteredItems()
+    {
+        $items = $this->items;
+
+        foreach (['getVisibleItems', 'resolveItems', 'getOrderedItems'] as $filter) {
+            $items = $this->$filter($items);
+        }
+
+        return $items;
     }
 
     /**
@@ -571,15 +619,15 @@ class MenuBuilder implements Countable
      *
      * @return array
      */
-    public function getOrderedItems()
+    public function getOrderedItems(array $items)
     {
         if (config('menus.ordering') || $this->ordering) {
-            return $this->toCollection()->sortBy(function ($item) {
+            return collect($items)>sortBy(function ($item) {
                 return $item->order;
             })->all();
         }
 
-        return $this->items;
+        return $items;
     }
 
     /**
@@ -592,7 +640,7 @@ class MenuBuilder implements Countable
         $presenter = $this->getPresenter();
         $menu = $presenter->getOpenTagWrapper();
 
-        foreach ($this->getOrderedItems() as $item) {
+        foreach ($this->getFilteredItems() as $item) {
             if ($item->hasSubMenu()) {
                 $menu .= $presenter->getMenuWithDropDownWrapper($item);
             } elseif ($item->isHeader()) {
