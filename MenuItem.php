@@ -83,7 +83,7 @@ class MenuItem implements ArrayableContract
     {
         return substr(md5(array_get($attributes, 'title', str_random(6))), 0, 5);
     }
-
+    
     /**
      * Create new static instance.
      *
@@ -267,7 +267,7 @@ class MenuItem implements ArrayableContract
      */
     public function getUrl()
     {
-        return !empty($this->route) ? route($this->route[0], $this->route[1]) : url($this->url);
+        return !empty($this->route) ? route($this->route[0], $this->route[1]) : $this->url;
     }
 
     /**
@@ -310,6 +310,12 @@ class MenuItem implements ArrayableContract
     public function getAttributes()
     {
         $attributes = $this->attributes;
+
+        foreach ($attributes as $k => $attribute) {
+            if (is_object($attribute) && 'Closure' === get_class($attribute)) {
+                $attributes[$k] = $attribute();
+            }
+        }
 
         array_forget($attributes, ['active', 'icon']);
 

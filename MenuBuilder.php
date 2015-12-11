@@ -290,8 +290,19 @@ class MenuBuilder implements Countable
 
             foreach ($matches as $match) {
 
+                $parts = explode('.', $match[1]);
+
+                // Deal with keys that match the binding exactly
                 if (array_key_exists($match[1], $this->bindings)) {
                     $key = preg_replace('/' . $match[0] . '/', $this->bindings[$match[1]], $key, 1);
+                } 
+
+                // Then with keys that reference objects via the dot annotation
+                elseif (count($parts) > 1 && array_key_exists($parts[0], $this->bindings)) {
+                    $key = $this->bindings[$parts[0]];
+                    for ($i = 1; $i < count($parts); $i++) {
+                        $key = $key->{ $parts[$i] };
+                    }
                 }
 
             }
@@ -330,6 +341,19 @@ class MenuBuilder implements Countable
     protected function getVisibleItems(array $items)
     {
         foreach ($items as $key => $item) {
+
+            if (is_callable($item->visible)) {
+
+                $context = new \stdclass;
+                $context->auth = \Auth::user();
+                $context->item = $item;
+
+                foreach ($this->bindings as $k => $binding) {
+                    $context->$k = $binding;
+                }
+
+                $item->visible = $item->visible->bindTo($context, $context);
+            }
 
             if (!$item->visible || is_callable($item->visible) 
                 && !call_user_func_array($item->visible, [$item, $this->bindings])) {
@@ -429,6 +453,11 @@ class MenuBuilder implements Countable
     {
         $url = $this->formatUrl($url);
 
+        return $this->rawUrl($url, $title, $order, $attributes, $visible);
+    }
+
+    public function rawUrl($url, $title, $order = 0, $attributes = array(), $visible = true)
+    {
         $item = MenuItem::make(compact('url', 'title', 'order', 'attributes', 'visible'));
 
         $this->items[] = $item;
@@ -564,7 +593,7 @@ class MenuBuilder implements Countable
         $items = $this->items;
 
         foreach (['getVisibleItems', 'resolveItems', 'getOrderedItems'] as $filter) {
-            $items = $this->$filter($items);
+            $items = $this->$filter(array_values($items));
         }
 
         return $items;
