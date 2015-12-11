@@ -1,5 +1,5 @@
 {
-  "name": "pingpong/menus",
+  "name": "olsgreen/menus",
   "description": "Laravel Menus",
   "keywords": [
     "laravel",
@@ -32,5 +32,5 @@
       "Pingpong\\Menus\\": ""
     }
   },
-  "minimum-stability": "stable"
+  "minimum-stability": "dev"
 }
