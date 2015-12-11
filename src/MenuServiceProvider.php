@@ -5,7 +5,7 @@ namespace Pingpong\Menus;
 use Illuminate\Foundation\AliasLoader;
 use Illuminate\Support\ServiceProvider;
 
-class MenusServiceProvider extends ServiceProvider
+class MenuServiceProvider extends ServiceProvider
 {
     /**
      * Indicates if loading of the provider is deferred.
@@ -75,8 +75,8 @@ class MenusServiceProvider extends ServiceProvider
      */
     protected function registerNamespaces()
     {
-        $this->mergeConfigFrom(__DIR__.'/src/config/config.php', 'menus');
-        $this->loadViewsFrom(__DIR__.'/src/views', 'menus');
+        $this->mergeConfigFrom(__DIR__.'/../config/config.php', 'menus');
+        $this->loadViewsFrom(__DIR__.'/../views', 'menus');
 
         $this->publishes([
             __DIR__.'/src/config/config.php' => config_path('menus.php'),
