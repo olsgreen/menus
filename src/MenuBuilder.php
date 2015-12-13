@@ -299,9 +299,9 @@ class MenuBuilder implements Countable
 
                 // Then with keys that reference objects via the dot annotation
                 elseif (count($parts) > 1 && array_key_exists($parts[0], $this->bindings)) {
-                    $key = $this->bindings[$parts[0]];
+                    $replacements = $this->bindings[$parts[0]];
                     for ($i = 1; $i < count($parts); $i++) {
-                        $key = $key->{ $parts[$i] };
+                        $key = str_replace($match[0], $replacements->{ $parts[$i] }, $key);
                     }
                 }
 
