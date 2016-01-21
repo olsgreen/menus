@@ -3,6 +3,7 @@
 namespace Pingpong\Menus;
 
 use Illuminate\Support\ServiceProvider;
+use Pingpong\Menus\Menu;
 
 class MenuRegistrarServiceProvider extends ServiceProvider
 {
@@ -18,7 +19,7 @@ class MenuRegistrarServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    public function boot()
+    public function boot(Menu $menu)
     {
         $this->registerMenus($this->menus);
     }
