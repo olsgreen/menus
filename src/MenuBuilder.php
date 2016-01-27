@@ -383,6 +383,15 @@ class MenuBuilder implements Countable
         return $item;
     }
 
+    public function remove(\Closure $closure)
+    {
+        $keys_to_remove = $closure($this->items);
+
+        foreach ($keys_to_remove as $key) {
+            unset($this->items[$key]);
+        }
+    }
+
     /**
      * Create new menu with dropdown.
      *
