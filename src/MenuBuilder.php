@@ -660,9 +660,9 @@ class MenuBuilder implements Countable
     public function getOrderedItems(array $items)
     {
         if (config('menus.ordering') || $this->ordering) {
-            return collect($items)>sortBy(function ($item) {
-                return $item->order;
-            })->all();
+            return collect($items)->sort(function ($a, $b) {
+                return $a->order > $b->order;
+            });
         }
 
         return $items;
